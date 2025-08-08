@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile & Banner Selector</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Style for the selected image */
+        .selected-image {
+            box-shadow: 0 0 0 4px #3b82f6, 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transform: scale(1.05);
+        }
+        .image-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">Image Selector</h1>
+            <p class="text-md text-gray-600 mt-2">Click on an image to select a profile and a banner for each category. Only available images are shown.</p>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Image Galleries -->
+            <div id="image-galleries" class="lg:col-span-2 space-y-8">
+                 <div id="loading-indicator" class="text-center text-gray-500 py-10">
+                    <p>Loading and checking images...</p>
+                </div>
+            </div>
+
+            <!-- Output & Controls -->
+            <div class="lg:col-span-1">
+                <div class="sticky top-8 bg-white p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4">Your Selections</h2>
+                    <p class="text-sm text-gray-500 mb-4">The JSON below is updated automatically and saved to your browser's local storage.</p>
+                    <div class="bg-gray-900 text-white rounded-lg p-4 font-mono text-sm h-48 overflow-auto">
+                        <pre id="json-output">{}</pre>
+                    </div>
+                    <div class="mt-6 flex space-x-4">
+                         <button id="copy-button" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+                            Copy JSON
+                        </button>
+                        <button id="clear-button" class="w-full bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400 transition-colors duration-200">
+                            Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // --- DATA CONFIGURATION ---
+            const imageStyles = [
+                "Cyberpunk_Neon", "Minimalist_Corporate", "Geometric_Vibrant",
+                "Origami_Tech", "Studio_Ghibli", "Hyper_Realistic",
+                "Vintage_Propaganda", "Cosmic_Ink", "Claymation"
+            ];
+
+            // --- APPLICATION STATE ---
+            let selections = {};
+            let botFolders = [];
+            let imagesToTest = 0;
+            let imagesTested = 0;
+
+            // --- DOM ELEMENT REFERENCES ---
+            const galleriesContainer = document.getElementById('image-galleries');
+            const jsonOutput = document.getElementById('json-output');
+            const clearButton = document.getElementById('clear-button');
+            const copyButton = document.getElementById('copy-button');
+            const loadingIndicator = document.getElementById('loading-indicator');
+
+            // --- FUNCTIONS ---
+            
+            /**
+             * Fetches bot folder names from an external JSON file.
+             */
+            async function fetchBotFolders() {
+                try {
+                    const response = await fetch('names.json');
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    return data.folders || [];
+                } catch (error) {
+                    console.error("Could not fetch or parse names.json:", error);
+                    galleriesContainer.innerHTML = `<div class="text-center text-red-500 py-10"><p>Error: Could not load folder names from names.json. Please ensure the file exists and is correctly formatted.</p></div>`;
+                    return [];
+                }
+            }
+
+            /**
+             * Initializes the selections object and gallery sections for each bot folder.
+             */
+            function initializeGalleriesAndState() {
+                galleriesContainer.innerHTML = ''; // Clear existing content
+                selections = {}; // Reset state
+                botFolders.forEach(botName => {
+                    // Initialize state for each folder
+                    selections[botName] = {
+                        profile: null,
+                        banner: null
+                    };
+
+                    // Create gallery section in the DOM
+                    const botSection = document.createElement('div');
+                    botSection.className = 'bg-white p-6 rounded-2xl shadow-lg hidden'; // Start hidden
+                    botSection.id = `section-${botName}`;
+                    
+                    botSection.innerHTML = `
+                        <h3 class="text-2xl font-bold border-b pb-3 mb-4">${botName}</h3>
+                        <div class="space-y-6">
+                            <div>
+                                <h4 class="text-lg font-semibold mb-3">Profile Pictures</h4>
+                                <div id="profiles-${botName}" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4" data-type="profile"></div>
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-semibold mb-3">Banners</h4>
+                                <div id="banners-${botName}" class="grid grid-cols-1 sm:grid-cols-2 gap-4" data-type="banner"></div>
+                            </div>
+                        </div>
+                    `;
+                    galleriesContainer.appendChild(botSection);
+                });
+                galleriesContainer.appendChild(loadingIndicator);
+            }
+
+            /**
+             * Generates all possible image paths and tests if they exist.
+             */
+            function generateAndTestImages() {
+                if (botFolders.length === 0 || imageStyles.length === 0) {
+                    checkAllImagesTested();
+                    return;
+                }
+                
+                imagesToTest = botFolders.length * imageStyles.length * 2;
+
+                botFolders.forEach(folder => {
+                    imageStyles.forEach(style => {
+                        const profilePath = `output/${folder}/${style}_profile.png`;
+                        const bannerPath = `output/${folder}/${style}_banner.png`;
+
+                        testAndAddImage(profilePath, 'profile', folder);
+                        testAndAddImage(bannerPath, 'banner', folder);
+                    });
+                });
+            }
+
+            /**
+             * Creates an image in memory to test if the src is valid.
+             * If it loads, it's added to the DOM.
+             * @param {string} src - The path to the image.
+             * @param {string} type - 'profile' or 'banner'.
+             * @param {string} folder - The name of the bot folder.
+             */
+            function testAndAddImage(src, type, folder) {
+                const img = new Image();
+                img.src = src;
+
+                img.onload = () => {
+                    const containerId = type === 'profile' ? `profiles-${folder}` : `banners-${folder}`;
+                    const sectionId = `section-${folder}`;
+                    const container = document.getElementById(containerId);
+                    const section = document.getElementById(sectionId);
+                    if (!container || !section) return;
+
+                    // Make the bot's section visible since it has at least one image
+                    section.classList.remove('hidden');
+
+                    const imageDiv = document.createElement('div');
+                    imageDiv.className = "relative rounded-lg overflow-hidden cursor-pointer image-container transition-all duration-200";
+                    imageDiv.dataset.src = src;
+                    imageDiv.dataset.type = type;
+                    imageDiv.dataset.folder = folder; // Add folder data attribute
+                    imageDiv.innerHTML = `
+                        <img src="${src}" alt="${src}" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-black bg-opacity-20 opacity-0 hover:opacity-100 transition-opacity duration-200"></div>
+                    `;
+                    container.appendChild(imageDiv);
+                    updateUiSelection();
+                    checkAllImagesTested();
+                };
+
+                img.onerror = () => {
+                    // Image doesn't exist, just update the counter.
+                    checkAllImagesTested();
+                };
+            }
+            
+            /**
+             * Checks if all images have been tested and hides the loading indicator.
+             */
+            function checkAllImagesTested() {
+                imagesTested++;
+                if (imagesTested >= imagesToTest || imagesToTest === 0) {
+                    loadingIndicator.classList.add('hidden');
+                }
+            }
+
+            /**
+             * Updates the JSON output display and saves the selection to localStorage.
+             */
+            function updateAndSave() {
+                jsonOutput.textContent = JSON.stringify(selections, null, 2);
+                localStorage.setItem('imageSelections', JSON.stringify(selections));
+            }
+
+            /**
+             * Updates the UI to show which images are selected.
+             */
+            function updateUiSelection() {
+                document.querySelectorAll('.image-container').forEach(el => {
+                    const { src, type, folder } = el.dataset;
+                    const isSelected = selections[folder] && selections[folder][type] === src;
+                    el.classList.toggle('selected-image', isSelected);
+                });
+            }
+
+            /**
+             * Handles click events on any image container.
+             * @param {Event} e - The click event.
+             */
+            function handleImageClick(e) {
+                const container = e.target.closest('.image-container');
+                if (!container) return;
+
+                const { src, type, folder } = container.dataset;
+                
+                if (selections[folder][type] === src) {
+                    selections[folder][type] = null; // Deselect if clicked again
+                } else {
+                    selections[folder][type] = src; // Select
+                }
+
+                updateAndSave();
+                updateUiSelection();
+            }
+
+            /**
+             * Loads selections from localStorage on page load.
+             */
+            function loadFromStorage() {
+                const savedSelections = localStorage.getItem('imageSelections');
+                if (savedSelections) {
+                    // Merge saved data with the default structure to handle new folders
+                    const parsed = JSON.parse(savedSelections);
+                    Object.keys(selections).forEach(folder => {
+                        if (parsed[folder]) {
+                            selections[folder] = parsed[folder];
+                        }
+                    });
+                    updateAndSave();
+                }
+            }
+            
+            /**
+             * Copies the JSON output to the clipboard.
+             */
+            function copyJsonToClipboard() {
+                const jsonString = jsonOutput.textContent;
+                const textarea = document.createElement('textarea');
+                textarea.value = jsonString;
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    copyButton.textContent = 'Copied!';
+                    setTimeout(() => { copyButton.textContent = 'Copy JSON'; }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy JSON: ', err);
+                    copyButton.textContent = 'Error!';
+                     setTimeout(() => { copyButton.textContent = 'Copy JSON'; }, 2000);
+                }
+                document.body.removeChild(textarea);
+            }
+
+            // --- EVENT LISTENERS ---
+            galleriesContainer.addEventListener('click', handleImageClick);
+
+            clearButton.addEventListener('click', () => {
+                // Re-initialize the state to clear all selections
+                botFolders.forEach(botName => {
+                    selections[botName] = { profile: null, banner: null };
+                });
+                updateAndSave();
+                updateUiSelection();
+            });
+            
+            copyButton.addEventListener('click', copyJsonToClipboard);
+
+            // --- INITIALIZATION ---
+            botFolders = await fetchBotFolders();
+            if (botFolders.length > 0) {
+                initializeGalleriesAndState();
+                loadFromStorage();
+                generateAndTestImages();
+            }
+        });
+    </script>
+</body>
+</html>
