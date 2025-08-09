@@ -19,6 +19,9 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
+        .gallery-section:not(:empty) {
+            min-height: 200px; /* Prevent layout shift as images load */
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
@@ -26,14 +29,24 @@
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         <header class="text-center mb-8">
             <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">Image Selector</h1>
-            <p class="text-md text-gray-600 mt-2">Click on an image to select a profile and a banner for each category. Only available images are shown.</p>
+            <p class="text-md text-gray-600 mt-2">Enter bot folder names, then scroll to load and select images for each category.</p>
         </header>
+
+        <!-- Input for bot folders -->
+        <div class="mb-8 bg-white p-6 rounded-2xl shadow-lg">
+            <label for="folders-input" class="block text-lg font-semibold mb-2">Bot Folder Names</label>
+            <p class="text-sm text-gray-500 mb-4">Enter one folder name per line. The app will save this list.</p>
+            <textarea id="folders-input" class="w-full h-24 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="ImortalsGobline&#10;AlgoDragon&#10;SunsetRiders"></textarea>
+            <button id="load-folders-button" class="mt-4 w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200">
+                Load Folders
+            </button>
+        </div>
 
         <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Image Galleries -->
             <div id="image-galleries" class="lg:col-span-2 space-y-8">
-                 <div id="loading-indicator" class="text-center text-gray-500 py-10">
-                    <p>Loading and checking images...</p>
+                 <div id="placeholder-text" class="text-center text-gray-500 py-10">
+                    <p>Galleries will be generated here after you load the folder names.</p>
                 </div>
             </div>
 
@@ -59,7 +72,7 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
+        document.addEventListener('DOMContentLoaded', () => {
             // --- DATA CONFIGURATION ---
             const imageStyles = [
                 "Cyberpunk_Neon", "Minimalist_Corporate", "Geometric_Vibrant",
@@ -70,54 +83,41 @@
             // --- APPLICATION STATE ---
             let selections = {};
             let botFolders = [];
-            let imagesToTest = 0;
-            let imagesTested = 0;
+            let intersectionObserver;
 
             // --- DOM ELEMENT REFERENCES ---
             const galleriesContainer = document.getElementById('image-galleries');
             const jsonOutput = document.getElementById('json-output');
             const clearButton = document.getElementById('clear-button');
             const copyButton = document.getElementById('copy-button');
-            const loadingIndicator = document.getElementById('loading-indicator');
+            const foldersInput = document.getElementById('folders-input');
+            const loadFoldersButton = document.getElementById('load-folders-button');
 
             // --- FUNCTIONS ---
             
             /**
-             * Fetches bot folder names from an external JSON file.
-             */
-            async function fetchBotFolders() {
-                try {
-                    const response = await fetch('names.json');
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    const data = await response.json();
-                    return data.folders || [];
-                } catch (error) {
-                    console.error("Could not fetch or parse names.json:", error);
-                    galleriesContainer.innerHTML = `<div class="text-center text-red-500 py-10"><p>Error: Could not load folder names from names.json. Please ensure the file exists and is correctly formatted.</p></div>`;
-                    return [];
-                }
-            }
-
-            /**
              * Initializes the selections object and gallery sections for each bot folder.
+             * Sets up the IntersectionObserver to lazy-load images.
              */
-            function initializeGalleriesAndState() {
+            function setupGalleriesAndObserver() {
+                // Disconnect previous observer if it exists
+                if (intersectionObserver) {
+                    intersectionObserver.disconnect();
+                }
+
                 galleriesContainer.innerHTML = ''; // Clear existing content
                 selections = {}; // Reset state
-                botFolders.forEach(botName => {
-                    // Initialize state for each folder
-                    selections[botName] = {
-                        profile: null,
-                        banner: null
-                    };
 
-                    // Create gallery section in the DOM
+                botFolders.forEach(botName => {
+                    if (!botName) return; // Skip empty lines
+                    selections[botName] = { profile: null, banner: null };
+
                     const botSection = document.createElement('div');
-                    botSection.className = 'bg-white p-6 rounded-2xl shadow-lg hidden'; // Start hidden
+                    botSection.className = 'gallery-section bg-white p-6 rounded-2xl shadow-lg';
                     botSection.id = `section-${botName}`;
-                    
+                    botSection.dataset.folder = botName; // Store folder name for the observer
+                    botSection.dataset.loaded = "false"; // Flag to prevent re-loading
+
                     botSection.innerHTML = `
                         <h3 class="text-2xl font-bold border-b pb-3 mb-4">${botName}</h3>
                         <div class="space-y-6">
@@ -133,28 +133,43 @@
                     `;
                     galleriesContainer.appendChild(botSection);
                 });
-                galleriesContainer.appendChild(loadingIndicator);
+
+                // Setup the observer
+                intersectionObserver = new IntersectionObserver((entries, observer) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const section = entry.target;
+                            const folder = section.dataset.folder;
+                            if (section.dataset.loaded === "false") {
+                                section.dataset.loaded = "true"; // Mark as loading/loaded
+                                generateAndTestImagesForFolder(folder);
+                                observer.unobserve(section); // Stop observing once triggered
+                            }
+                        }
+                    });
+                }, { rootMargin: "200px" }); // Load images 200px before they enter viewport
+
+                // Observe all the newly created sections
+                document.querySelectorAll('.gallery-section').forEach(section => {
+                    intersectionObserver.observe(section);
+                });
+                
+                // After setting up the galleries, load any saved selections.
+                loadSelectionsFromStorage();
             }
 
             /**
-             * Generates all possible image paths and tests if they exist.
+             * Generates and tests images for a single folder.
+             * @param {string} folder - The name of the bot folder to process.
              */
-            function generateAndTestImages() {
-                if (botFolders.length === 0 || imageStyles.length === 0) {
-                    checkAllImagesTested();
-                    return;
-                }
+            function generateAndTestImagesForFolder(folder) {
+                if (!folder || imageStyles.length === 0) return;
                 
-                imagesToTest = botFolders.length * imageStyles.length * 2;
-
-                botFolders.forEach(folder => {
-                    imageStyles.forEach(style => {
-                        const profilePath = `output/${folder}/${style}_profile.png`;
-                        const bannerPath = `output/${folder}/${style}_banner.png`;
-
-                        testAndAddImage(profilePath, 'profile', folder);
-                        testAndAddImage(bannerPath, 'banner', folder);
-                    });
+                imageStyles.forEach(style => {
+                    const profilePath = `output/${folder}/${style}_profile.png`;
+                    const bannerPath = `output/${folder}/${style}_banner.png`;
+                    testAndAddImage(profilePath, 'profile', folder);
+                    testAndAddImage(bannerPath, 'banner', folder);
                 });
             }
 
@@ -171,44 +186,24 @@
 
                 img.onload = () => {
                     const containerId = type === 'profile' ? `profiles-${folder}` : `banners-${folder}`;
-                    const sectionId = `section-${folder}`;
                     const container = document.getElementById(containerId);
-                    const section = document.getElementById(sectionId);
-                    if (!container || !section) return;
-
-                    // Make the bot's section visible since it has at least one image
-                    section.classList.remove('hidden');
+                    if (!container) return;
 
                     const imageDiv = document.createElement('div');
                     imageDiv.className = "relative rounded-lg overflow-hidden cursor-pointer image-container transition-all duration-200";
                     imageDiv.dataset.src = src;
                     imageDiv.dataset.type = type;
-                    imageDiv.dataset.folder = folder; // Add folder data attribute
+                    imageDiv.dataset.folder = folder;
                     imageDiv.innerHTML = `
                         <img src="${src}" alt="${src}" class="w-full h-full object-cover">
                         <div class="absolute inset-0 bg-black bg-opacity-20 opacity-0 hover:opacity-100 transition-opacity duration-200"></div>
                     `;
                     container.appendChild(imageDiv);
-                    updateUiSelection();
-                    checkAllImagesTested();
+                    updateUiSelection(); // Check if this newly added image should be selected
                 };
-
-                img.onerror = () => {
-                    // Image doesn't exist, just update the counter.
-                    checkAllImagesTested();
-                };
+                // No 'onerror' action needed, as we simply don't add the image if it fails to load.
             }
             
-            /**
-             * Checks if all images have been tested and hides the loading indicator.
-             */
-            function checkAllImagesTested() {
-                imagesTested++;
-                if (imagesTested >= imagesToTest || imagesToTest === 0) {
-                    loadingIndicator.classList.add('hidden');
-                }
-            }
-
             /**
              * Updates the JSON output display and saves the selection to localStorage.
              */
@@ -223,8 +218,10 @@
             function updateUiSelection() {
                 document.querySelectorAll('.image-container').forEach(el => {
                     const { src, type, folder } = el.dataset;
-                    const isSelected = selections[folder] && selections[folder][type] === src;
-                    el.classList.toggle('selected-image', isSelected);
+                    if (selections[folder]) {
+                        const isSelected = selections[folder][type] === src;
+                        el.classList.toggle('selected-image', isSelected);
+                    }
                 });
             }
 
@@ -247,21 +244,34 @@
                 updateAndSave();
                 updateUiSelection();
             }
-
+            
             /**
-             * Loads selections from localStorage on page load.
+             * Loads only the image selections from storage and applies them.
              */
-            function loadFromStorage() {
+            function loadSelectionsFromStorage() {
                 const savedSelections = localStorage.getItem('imageSelections');
                 if (savedSelections) {
-                    // Merge saved data with the default structure to handle new folders
                     const parsed = JSON.parse(savedSelections);
+                    // Merge saved selections into the current state
                     Object.keys(selections).forEach(folder => {
                         if (parsed[folder]) {
                             selections[folder] = parsed[folder];
                         }
                     });
                     updateAndSave();
+                    updateUiSelection();
+                }
+            }
+            
+            /**
+             * Main initialization function on page load.
+             */
+            function initializeApp() {
+                const savedFolders = localStorage.getItem('botFolders');
+                if (savedFolders) {
+                    foldersInput.value = savedFolders;
+                    botFolders = savedFolders.split('\n').filter(f => f.trim() !== '');
+                    setupGalleriesAndObserver();
                 }
             }
             
@@ -286,27 +296,29 @@
                 document.body.removeChild(textarea);
             }
 
-            // --- EVENT LISTENERS ---
-            galleriesContainer.addEventListener('click', handleImageClick);
+            function handleLoadFoldersClick() {
+                const folderList = foldersInput.value;
+                botFolders = folderList.split('\n').filter(f => f.trim() !== '');
+                localStorage.setItem('botFolders', folderList);
+                setupGalleriesAndObserver();
+            }
 
+            // --- EVENT LISTENERS ---
+            loadFoldersButton.addEventListener('click', handleLoadFoldersClick);
+            galleriesContainer.addEventListener('click', handleImageClick);
             clearButton.addEventListener('click', () => {
-                // Re-initialize the state to clear all selections
                 botFolders.forEach(botName => {
-                    selections[botName] = { profile: null, banner: null };
+                    if (selections[botName]) {
+                        selections[botName] = { profile: null, banner: null };
+                    }
                 });
                 updateAndSave();
                 updateUiSelection();
             });
-            
             copyButton.addEventListener('click', copyJsonToClipboard);
 
             // --- INITIALIZATION ---
-            botFolders = await fetchBotFolders();
-            if (botFolders.length > 0) {
-                initializeGalleriesAndState();
-                loadFromStorage();
-                generateAndTestImages();
-            }
+            initializeApp();
         });
     </script>
 </body>
