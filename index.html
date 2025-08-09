@@ -107,7 +107,7 @@
 
                     const botSection = document.createElement('div');
                     botSection.className = 'gallery-section bg-white p-6 rounded-2xl shadow-lg';
-                    botSection.id = `section-${botName}`;
+                    botSection.id = `section-${botName.replace(/ /g, '_')}`; // Use sanitized ID
 
                     botSection.innerHTML = `
                         <div class="flex justify-between items-center border-b pb-3 mb-4">
@@ -119,11 +119,11 @@
                         <div class="space-y-6">
                             <div>
                                 <h4 class="text-lg font-semibold mb-3">Profile Pictures</h4>
-                                <div id="profiles-${botName}" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4" data-type="profile"></div>
+                                <div id="profiles-${botName.replace(/ /g, '_')}" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4" data-type="profile"></div>
                             </div>
                             <div>
                                 <h4 class="text-lg font-semibold mb-3">Banners</h4>
-                                <div id="banners-${botName}" class="grid grid-cols-1 sm:grid-cols-2 gap-4" data-type="banner"></div>
+                                <div id="banners-${botName.replace(/ /g, '_')}" class="grid grid-cols-1 sm:grid-cols-2 gap-4" data-type="banner"></div>
                             </div>
                         </div>
                     `;
@@ -141,9 +141,12 @@
             function generateAndTestImagesForFolder(folder) {
                 if (!folder || imageStyles.length === 0) return;
                 
+                // Replace spaces with underscores for the file path
+                const pathFolder = folder.replace(/ /g, '_');
+                
                 imageStyles.forEach(style => {
-                    const profilePath = `output/${folder}/${style}_profile.png`;
-                    const bannerPath = `output/${folder}/${style}_banner.png`;
+                    const profilePath = `output/${pathFolder}/${style}_profile.png`;
+                    const bannerPath = `output/${pathFolder}/${style}_banner.png`;
                     testAndAddImage(profilePath, 'profile', folder);
                     testAndAddImage(bannerPath, 'banner', folder);
                 });
@@ -154,14 +157,15 @@
              * If it loads, it's added to the DOM.
              * @param {string} src - The path to the image.
              * @param {string} type - 'profile' or 'banner'.
-             * @param {string} folder - The name of the bot folder.
+             * @param {string} folder - The original name of the bot folder (with spaces).
              */
             function testAndAddImage(src, type, folder) {
                 const img = new Image();
                 img.src = src;
 
                 img.onload = () => {
-                    const containerId = type === 'profile' ? `profiles-${folder}` : `banners-${folder}`;
+                    const sanitizedFolderId = folder.replace(/ /g, '_');
+                    const containerId = type === 'profile' ? `profiles-${sanitizedFolderId}` : `banners-${sanitizedFolderId}`;
                     const container = document.getElementById(containerId);
                     if (!container) return;
 
@@ -169,7 +173,7 @@
                     imageDiv.className = "relative rounded-lg overflow-hidden cursor-pointer image-container transition-all duration-200";
                     imageDiv.dataset.src = src;
                     imageDiv.dataset.type = type;
-                    imageDiv.dataset.folder = folder;
+                    imageDiv.dataset.folder = folder; // Use original name for data mapping
                     imageDiv.innerHTML = `
                         <img src="${src}" alt="${src}" class="w-full h-full object-cover">
                         <div class="absolute inset-0 bg-black bg-opacity-20 opacity-0 hover:opacity-100 transition-opacity duration-200"></div>
