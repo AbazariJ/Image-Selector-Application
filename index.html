@@ -29,7 +29,7 @@
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         <header class="text-center mb-8">
             <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">Image Selector</h1>
-            <p class="text-md text-gray-600 mt-2">Enter bot folder names, then scroll to load and select images for each category.</p>
+            <p class="text-md text-gray-600 mt-2">Enter bot folder names, then click the eye icon to load and select images for each category.</p>
         </header>
 
         <!-- Input for bot folders -->
@@ -83,7 +83,6 @@
             // --- APPLICATION STATE ---
             let selections = {};
             let botFolders = [];
-            let intersectionObserver;
 
             // --- DOM ELEMENT REFERENCES ---
             const galleriesContainer = document.getElementById('image-galleries');
@@ -97,14 +96,8 @@
             
             /**
              * Initializes the selections object and gallery sections for each bot folder.
-             * Sets up the IntersectionObserver to lazy-load images.
              */
-            function setupGalleriesAndObserver() {
-                // Disconnect previous observer if it exists
-                if (intersectionObserver) {
-                    intersectionObserver.disconnect();
-                }
-
+            function setupGalleries() {
                 galleriesContainer.innerHTML = ''; // Clear existing content
                 selections = {}; // Reset state
 
@@ -115,11 +108,14 @@
                     const botSection = document.createElement('div');
                     botSection.className = 'gallery-section bg-white p-6 rounded-2xl shadow-lg';
                     botSection.id = `section-${botName}`;
-                    botSection.dataset.folder = botName; // Store folder name for the observer
-                    botSection.dataset.loaded = "false"; // Flag to prevent re-loading
 
                     botSection.innerHTML = `
-                        <h3 class="text-2xl font-bold border-b pb-3 mb-4">${botName}</h3>
+                        <div class="flex justify-between items-center border-b pb-3 mb-4">
+                            <h3 class="text-2xl font-bold">${botName}</h3>
+                            <button class="load-folder-images-btn p-2 rounded-full hover:bg-gray-200 transition" data-folder="${botName}" title="Load images for ${botName}">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </button>
+                        </div>
                         <div class="space-y-6">
                             <div>
                                 <h4 class="text-lg font-semibold mb-3">Profile Pictures</h4>
@@ -132,26 +128,6 @@
                         </div>
                     `;
                     galleriesContainer.appendChild(botSection);
-                });
-
-                // Setup the observer
-                intersectionObserver = new IntersectionObserver((entries, observer) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            const section = entry.target;
-                            const folder = section.dataset.folder;
-                            if (section.dataset.loaded === "false") {
-                                section.dataset.loaded = "true"; // Mark as loading/loaded
-                                generateAndTestImagesForFolder(folder);
-                                observer.unobserve(section); // Stop observing once triggered
-                            }
-                        }
-                    });
-                }, { rootMargin: "200px" }); // Load images 200px before they enter viewport
-
-                // Observe all the newly created sections
-                document.querySelectorAll('.gallery-section').forEach(section => {
-                    intersectionObserver.observe(section);
                 });
                 
                 // After setting up the galleries, load any saved selections.
@@ -271,7 +247,7 @@
                 if (savedFolders) {
                     foldersInput.value = savedFolders;
                     botFolders = savedFolders.split('\n').filter(f => f.trim() !== '');
-                    setupGalleriesAndObserver();
+                    setupGalleries();
                 }
             }
             
@@ -300,12 +276,27 @@
                 const folderList = foldersInput.value;
                 botFolders = folderList.split('\n').filter(f => f.trim() !== '');
                 localStorage.setItem('botFolders', folderList);
-                setupGalleriesAndObserver();
+                setupGalleries();
             }
 
             // --- EVENT LISTENERS ---
             loadFoldersButton.addEventListener('click', handleLoadFoldersClick);
-            galleriesContainer.addEventListener('click', handleImageClick);
+            galleriesContainer.addEventListener('click', (e) => {
+                // Delegate clicks for images
+                if (e.target.closest('.image-container')) {
+                    handleImageClick(e);
+                    return;
+                }
+                // Delegate clicks for the load button
+                const button = e.target.closest('.load-folder-images-btn');
+                if (button) {
+                    const folder = button.dataset.folder;
+                    if (button.disabled) return;
+                    button.disabled = true;
+                    button.innerHTML = `<svg class="animate-spin h-6 w-6 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+                    generateAndTestImagesForFolder(folder);
+                }
+            });
             clearButton.addEventListener('click', () => {
                 botFolders.forEach(botName => {
                     if (selections[botName]) {
