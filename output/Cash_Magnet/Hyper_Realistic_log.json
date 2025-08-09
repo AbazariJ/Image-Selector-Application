@@ -1,7 +1,7 @@
 {
     "bot_name": "Cash Magnet",
     "style": "Hyper Realistic",
-    "timestamp": "2025-08-08T21:22:04.565042",
+    "timestamp": "2025-08-09T00:24:45.791809",
     "steps": [
         {
             "step": "1_NameAnalysisRequest",
@@ -41,14 +41,14 @@
         {
             "step": "1_NameAnalysisResponse",
             "response": {
-                "coreSubject": "A stylized magnet",
+                "coreSubject": "a stylized magnet",
                 "secondaryElements": [
-                    "stacks of banknotes",
-                    "flowing magnetic field lines",
-                    "digital data streams",
-                    "gold coins"
+                    "piles of cash",
+                    "currency symbols",
+                    "magnetic field lines",
+                    "radiant glow"
                 ],
-                "theme": "Automated wealth attraction"
+                "theme": "effortless financial attraction and abundance"
             }
         },
         {
@@ -59,7 +59,7 @@
                         "role": "user",
                         "parts": [
                             {
-                                "text": "\n        As an expert AI Art Director, synthesize the following creative brief into two distinct, descriptive prompts for an image generation AI.\n        \n        Creative Brief:\n        - Name Analysis: {\"coreSubject\": \"A stylized magnet\", \"secondaryElements\": [\"stacks of banknotes\", \"flowing magnetic field lines\", \"digital data streams\", \"gold coins\"], \"theme\": \"Automated wealth attraction\"}\n        - Visual Style: \"Hyper Realistic\" - A style that aims for a stunning level of detail, almost indistinguishable from a high-resolution photograph. It emphasizes realistic textures, lighting, and physics. The final image should look like a professional photograph of a real object or scene.\n\n        Your task is to generate a JSON object with two keys: \"profilePrompt\" and \"bannerPrompt\".\n\n        1.  **profilePrompt**: Create a prompt for a minimalist, iconic, centered logo (1:1 ratio). It should be a clean, vector-style emblem suitable for a small profile picture. Focus on the 'coreSubject'. The style should be a perfect fusion of the analysis and the chosen visual style.\n        2.  **bannerPrompt**: Create a prompt for a wide-angle, cinematic, and detailed banner image (16:9 ratio). This prompt should create an expansive scene that builds on the 'theme' and incorporates the 'secondaryElements'. It should be atmospheric and visually rich, fully embracing the chosen style.\n\n        Append the following negative prompts to the end of BOTH prompts: \"--no text, words, signature, blurry, watermark, human figures, letters\".\n    "
+                                "text": "\n        As an expert AI Art Director, synthesize the following creative brief into two distinct, descriptive prompts for an image generation AI.\n        \n        Creative Brief:\n        - Name Analysis: {\"coreSubject\": \"a stylized magnet\", \"secondaryElements\": [\"piles of cash\", \"currency symbols\", \"magnetic field lines\", \"radiant glow\"], \"theme\": \"effortless financial attraction and abundance\"}\n        - Visual Style: \"Hyper Realistic\" - A style that aims for a stunning level of detail, almost indistinguishable from a high-resolution photograph. It emphasizes realistic textures, lighting, and physics. The final image should look like a professional photograph of a real object or scene.\n\n        Your task is to generate a JSON object with two keys: \"profilePrompt\" and \"bannerPrompt\".\n\n        1.  **profilePrompt**: Create a prompt for a minimalist, iconic, centered logo (1:1 ratio). It should be a clean, vector-style emblem suitable for a small profile picture. Focus on the 'coreSubject'. The style should be a perfect fusion of the analysis and the chosen visual style.\n        2.  **bannerPrompt**: Create a prompt for a wide-angle, cinematic, and detailed banner image (16:9 ratio). This prompt should create an expansive scene that builds on the 'theme' and incorporates the 'secondaryElements'. It should be atmospheric and visually rich, fully embracing the chosen style.\n\n        Append the following negative prompts to the end of BOTH prompts: \"--no text, words, signature, blurry, watermark, human figures, letters\".\n    "
                             }
                         ]
                     }
@@ -83,8 +83,8 @@
         {
             "step": "2_PromptCraftingResponse",
             "response": {
-                "bannerPrompt": "A wide-angle, hyper-realistic, cinematic photograph of a powerful, stylized magnet at the center of a dynamic scene, actively attracting wealth. The magnet emits vibrant, flowing magnetic field lines that visibly pull in immense stacks of crisp banknotes and gleaming gold coins. Digital data streams, rendered with intricate detail, swirl around the magnet, symbolizing automated processes. The scene is illuminated with dramatic, professional studio lighting, emphasizing realistic textures and reflections on all elements. Atmospheric, rich in detail, and visually stunning, capturing the essence of automated wealth attraction. 16:9 aspect ratio. --no text, words, signature, blurry, watermark, human figures, letters",
-                "profilePrompt": "A hyper-realistic, professional studio photograph of a minimalist, stylized magnet logo. The magnet is perfectly centered, exhibiting incredibly detailed metallic textures and precise reflections, appearing as a clean, iconic emblem. The lighting is pristine, emphasizing its three-dimensional form on an isolated, neutral background. 1:1 aspect ratio. --no text, words, signature, blurry, watermark, human figures, letters"
+                "bannerPrompt": "Hyper Realistic wide-angle cinematic photograph. A stylized magnet is prominently featured at the center, intensely radiating a vibrant, golden radiant glow. Enormous, meticulously detailed piles of cash and glittering, three-dimensional currency symbols are effortlessly drawn towards and swirling dynamically around the magnet, guided by visibly powerful and intricate magnetic field lines. The scene is set in a luxurious, dimly lit vault or high-tech environment, evoking a powerful sense of effortless financial attraction and abundance. Atmospheric volumetric lighting, extremely sharp focus, rich textures, professional studio photography, ultra-high resolution, 16:9 aspect ratio --no text, words, signature, blurry, watermark, human figures, letters",
+                "profilePrompt": "Hyper Realistic, iconic and perfectly centered close-up photograph of a stylized magnet. The magnet features intricate, highly detailed metallic textures with subtle reflections, showcasing a minimalist and clean design. The lighting is soft and professional studio quality, casting subtle shadows on a pristine, plain white background. The image should resemble a high-resolution product shot. 1:1 aspect ratio --no text, words, signature, blurry, watermark, human figures, letters"
             }
         },
         {
@@ -92,7 +92,7 @@
             "payload": {
                 "instances": [
                     {
-                        "prompt": "A hyper-realistic, professional studio photograph of a minimalist, stylized magnet logo. The magnet is perfectly centered, exhibiting incredibly detailed metallic textures and precise reflections, appearing as a clean, iconic emblem. The lighting is pristine, emphasizing its three-dimensional form on an isolated, neutral background. 1:1 aspect ratio. --no text, words, signature, blurry, watermark, human figures, letters"
+                        "prompt": "Hyper Realistic, iconic and perfectly centered close-up photograph of a stylized magnet. The magnet features intricate, highly detailed metallic textures with subtle reflections, showcasing a minimalist and clean design. The lighting is soft and professional studio quality, casting subtle shadows on a pristine, plain white background. The image should resemble a high-resolution product shot. 1:1 aspect ratio --no text, words, signature, blurry, watermark, human figures, letters"
                     }
                 ],
                 "parameters": {
@@ -105,7 +105,7 @@
             "payload": {
                 "instances": [
                     {
-                        "prompt": "A wide-angle, hyper-realistic, cinematic photograph of a powerful, stylized magnet at the center of a dynamic scene, actively attracting wealth. The magnet emits vibrant, flowing magnetic field lines that visibly pull in immense stacks of crisp banknotes and gleaming gold coins. Digital data streams, rendered with intricate detail, swirl around the magnet, symbolizing automated processes. The scene is illuminated with dramatic, professional studio lighting, emphasizing realistic textures and reflections on all elements. Atmospheric, rich in detail, and visually stunning, capturing the essence of automated wealth attraction. 16:9 aspect ratio. --no text, words, signature, blurry, watermark, human figures, letters"
+                        "prompt": "Hyper Realistic wide-angle cinematic photograph. A stylized magnet is prominently featured at the center, intensely radiating a vibrant, golden radiant glow. Enormous, meticulously detailed piles of cash and glittering, three-dimensional currency symbols are effortlessly drawn towards and swirling dynamically around the magnet, guided by visibly powerful and intricate magnetic field lines. The scene is set in a luxurious, dimly lit vault or high-tech environment, evoking a powerful sense of effortless financial attraction and abundance. Atmospheric volumetric lighting, extremely sharp focus, rich textures, professional studio photography, ultra-high resolution, 16:9 aspect ratio --no text, words, signature, blurry, watermark, human figures, letters"
                     }
                 ],
                 "parameters": {
